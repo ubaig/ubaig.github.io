@@ -1,0 +1,258 @@
+#loaderOverlay {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+#loaderOverlay img {
+  width: 80px;
+}
+
+body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+        .setup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .game-config {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        .config-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .config-item {
+            flex: 1;
+        }
+        .player-input {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        .computer-player {
+            border-left: 4px solid #007bff;
+        }
+        .human-player {
+            border-left: 4px solid #28a745;
+        }
+        .player-type-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+        }
+        .human-indicator {
+            background-color: #28a745;
+        }
+        .computer-indicator {
+            background-color: #007bff;
+        }
+        .remove-player {
+            position: absolute;
+            top: 10px;
+            right: 45px;
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            line-height: 1;
+            cursor: pointer;
+        }
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .item-input {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .remove-item {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            line-height: 1;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .control-button {
+            background-color: #007bff;
+        }
+        .control-button:hover {
+            background-color: #0069d9;
+        }
+        .danger-button {
+            background-color: #dc3545;
+        }
+        .danger-button:hover {
+            background-color: #c82333;
+        }
+        .action-button {
+            background-color: #17a2b8;
+        }
+        .action-button:hover {
+            background-color: #138496;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        .game-section {
+            display: none;
+        }
+        .round-info {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .players-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .player-card {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        .player-card.match {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .player-card.computer {
+            border-left: 4px solid #007bff;
+        }
+        .player-card.human {
+            border-left: 4px solid #28a745;
+        }
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .player-items {
+            margin-bottom: 10px;
+        }
+        .points {
+            font-weight: bold;
+        }
+        .round-point {
+            color: #28a745;
+        }
+        .scoreboard {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+        .scoreboard-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .winner {
+            background-color: #d4edda;
+        }
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        .game-over {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        @media (max-width: 768px) {
+            .config-row {
+                flex-direction: column;
+            }
+            .players-container {
+                grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+            }
+        }
