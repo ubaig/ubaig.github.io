@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>King Wazeer Thief Police</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        .title {
+            text-align: center;
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .menu {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .menu-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+        
+        .menu-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.3);
+        }
+        
+        .menu-btn:last-child {
+            margin-bottom: 0;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: bold;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .game-code {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .game-code-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .game-code-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            letter-spacing: 3px;
+        }
+        
+        .players-list {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .player-item {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .game-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+            min-height: 250px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            min-height: 180px;
+            width: 100%;
+            max-width: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .card:hover:not(.revealed) {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .card.revealed {
+            cursor: default;
+        }
+        
+        .player-name {
+            font-size: 18px;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .tap-text {
+            font-size: 18px;
+            color: #764ba2;
+        }
+        
+        .role {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .role-emoji {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .end-round-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .end-round-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .back-btn {
+            background: #999;
+            margin-top: 10px;
+        }
+        
+        .status-text {
+            text-align: center;
+            color: #666;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🎭 King Wazeer Thief Police 🎭</h1>
+        
+        <!-- Main Menu -->
+        <div id="mainMenu" class="menu">
+            <button class="menu-btn" onclick="showLocalGame()">🎮 Play Local Game</button>
+            <button class="menu-btn" onclick="showCreateServer()">🌐 Create Server</button>
+            <button class="menu-btn" onclick="showJoinServer()">🔗 Join Game</button>
+        </div>
+        
+        <!-- Create Server -->
+        <div id="createServerMenu" class="menu hidden">
+            <div class="input-group">
+                <label>Your Name:</label>
+                <input type="text" id="hostName" placeholder="Enter your name">
+            </div>
+            <button class="menu-btn" onclick="createServer()">Create Game</button>
+            <button class="menu-btn back-btn" onclick="showMainMenu()">Back</button>
+        </div>
+        
+        <!-- Join Server -->
+        <div id="joinServerMenu" class="menu hidden">
+            <div class="input-group">
+                <label>Your Name:</label>
+                <input type="text" id="playerName" placeholder="Enter your name">
+            </div>
+            <div class="input-group">
+                <label>Game Code:</label>
+                <input type="text" id="gameCode" placeholder="123456" maxlength="6">
+            </div>
+            <button class="menu-btn" onclick="joinServer()">Join Game</button>
+            <button class="menu-btn back-btn" onclick="showMainMenu()">Back</button>
+        </div>
+        
+        <!-- Waiting Room -->
+        <div id="waitingRoom" class="menu hidden">
+            <div class="game-code">
+                <div class="game-code-label">Share this code:</div>
+                <div class="game-code-value" id="displayCode"></div>
+            </div>
+            <div class="players-list" id="playersList"></div>
+            <div class="status-text">Waiting for players... (<span id="playerCount">0</span>/4)</div>
+        </div>
+        
+        <!-- Game Area -->
+        <div id="gameArea" class="hidden"></div>
+        <button class="end-round-btn hidden" id="endRoundBtn" onclick="endRound()">👑 End Round (King Only)</button>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script>
+        const roles = [
+            { name: 'KING', emoji: '👑' },
+            { name: 'WAZEER', emoji: '🎩' },
+            { name: 'THIEF', emoji: '🦹' },
+            { name: 'POLICE', emoji: '💂' }
+        ];
+        
+        let gameMode = 'local'; // 'local' or 'multiplayer'
+        let peer = null;
+        let connections = [];
+        let isHost = false;
+        let myRole = null;
+        let myName = '';
+        let gameCode = '';
+        let players = [];
+        let revealed = false;
+        
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(frequency, duration) {
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = frequency;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + duration);
+        }
+        
+        function shuffle(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+        
+        function showMainMenu() {
+            document.getElementById('mainMenu').classList.remove('hidden');
+            document.getElementById('createServerMenu').classList.add('hidden');
+            document.getElementById('joinServerMenu').classList.add('hidden');
+            document.getElementById('waitingRoom').classList.add('hidden');
+            document.getElementById('gameArea').classList.add('hidden');
+            document.getElementById('endRoundBtn').classList.add('hidden');
+        }
+        
+        function showLocalGame() {
+            gameMode = 'local';
+            document.getElementById('mainMenu').classList.add('hidden');
+            startLocalGame();
+        }
+        
+        function showCreateServer() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('createServerMenu').classList.remove('hidden');
+        }
+        
+        function showJoinServer() {
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('joinServerMenu').classList.remove('hidden');
+        }
+        
+        function generateGameCode() {
+            return Math.floor(100000 + Math.random() * 900000).toString();
+        }
+        
+        function createServer() {
+            const name = document.getElementById('hostName').value.trim();
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
+            
+            myName = name;
+            isHost = true;
+            gameMode = 'multiplayer';
+            gameCode = generateGameCode();
+            
+            try {
+                peer = new Peer('game-' + gameCode, {
+                    debug: 0,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
+                });
+                
+                peer.on('open', () => {
+                    players = [{ name: myName, isHost: true }];
+                    showWaitingRoom();
+                });
+                
+                peer.on('connection', (conn) => {
+                    conn.on('data', (data) => {
+                        handleHostMessage(data, conn);
+                    });
+                    
+                    conn.on('open', () => {
+                        connections.push(conn);
+                    });
+                });
+                
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    if (err.type === 'unavailable-id') {
+                        alert('This game code is already in use. Please try again.');
+                        showMainMenu();
+                    } else {
+                        alert('Connection error. Please check your internet and try again.');
+                        showMainMenu();
+                    }
+                });
+            } catch (err) {
+                console.error('Failed to create peer:', err);
+                alert('Failed to create game. Please refresh and try again.');
+                showMainMenu();
+            }
+        }
+        
+        function handleHostMessage(data, conn) {
+            if (data.type === 'join') {
+                if (players.length >= 4) {
+                    conn.send({ type: 'error', message: 'Game is full' });
+                    return;
+                }
+                
+                players.push({ name: data.name, isHost: false });
+                updatePlayersList();
+                
+                // Send current players to new player
+                conn.send({ type: 'players', players: players });
+                
+                // Broadcast updated players to all
+                broadcastToAll({ type: 'players', players: players });
+                
+                if (players.length === 4) {
+                    startMultiplayerGame();
+                }
+            }
+        }
+        
+        function joinServer() {
+            const name = document.getElementById('playerName').value.trim();
+            const code = document.getElementById('gameCode').value.trim();
+            
+            if (!name || !code || code.length !== 6) {
+                alert('Please enter your name and a valid 6-digit code');
+                return;
+            }
+            
+            myName = name;
+            gameMode = 'multiplayer';
+            gameCode = code;
+            
+            try {
+                peer = new Peer({
+                    debug: 0,
+                    config: {
+                        iceServers: [
+                            { urls: 'stun:stun.l.google.com:19302' },
+                            { urls: 'stun:stun1.l.google.com:19302' }
+                        ]
+                    }
+                });
+                
+                peer.on('open', () => {
+                    const conn = peer.connect('game-' + gameCode);
+                    
+                    conn.on('open', () => {
+                        connections.push(conn);
+                        conn.send({ type: 'join', name: myName });
+                    });
+                    
+                    conn.on('data', (data) => {
+                        handleClientMessage(data);
+                    });
+                    
+                    conn.on('error', (err) => {
+                        console.error('Connection error:', err);
+                        alert('Could not connect to game. Check the code and try again.');
+                        showMainMenu();
+                    });
+                });
+                
+                peer.on('error', (err) => {
+                    console.error('Peer error:', err);
+                    alert('Connection failed. Please check your internet and try again.');
+                    showMainMenu();
+                });
+            } catch (err) {
+                console.error('Failed to join:', err);
+                alert('Failed to join game. Please refresh and try again.');
+                showMainMenu();
+            }
+        }
+        
+        function handleClientMessage(data) {
+            if (data.type === 'players') {
+                players = data.players;
+                updatePlayersList();
+                document.getElementById('createServerMenu').classList.add('hidden');
+                document.getElementById('joinServerMenu').classList.add('hidden');
+                document.getElementById('waitingRoom').classList.remove('hidden');
+                document.getElementById('displayCode').textContent = gameCode;
+            } else if (data.type === 'start') {
+                myRole = data.role;
+                showGameCard();
+            } else if (data.type === 'reset') {
+                myRole = data.role;
+                revealed = false;
+                showGameCard();
+            } else if (data.type === 'error') {
+                alert(data.message);
+                showMainMenu();
+            }
+        }
+        
+        function showWaitingRoom() {
+            document.getElementById('createServerMenu').classList.add('hidden');
+            document.getElementById('waitingRoom').classList.remove('hidden');
+            document.getElementById('displayCode').textContent = gameCode;
+            updatePlayersList();
+        }
+        
+        function updatePlayersList() {
+            const list = document.getElementById('playersList');
+            list.innerHTML = players.map(p => 
+                `<div class="player-item">${p.name}${p.isHost ? ' (Host)' : ''}</div>`
+            ).join('');
+            document.getElementById('playerCount').textContent = players.length;
+        }
+        
+        function broadcastToAll(data) {
+            connections.forEach(conn => {
+                if (conn.open) {
+                    conn.send(data);
+                }
+            });
+        }
+        
+        function startMultiplayerGame() {
+            const shuffledRoles = shuffle(roles);
+            
+            players.forEach((player, index) => {
+                const role = shuffledRoles[index];
+                
+                if (player.isHost) {
+                    myRole = role;
+                } else {
+                    connections[index - 1].send({ 
+                        type: 'start', 
+                        role: role 
+                    });
+                }
+            });
+            
+            setTimeout(() => {
+                showGameCard();
+            }, 500);
+        }
+        
+        function showGameCard() {
+            document.getElementById('waitingRoom').classList.add('hidden');
+            const gameArea = document.getElementById('gameArea');
+            gameArea.classList.remove('hidden');
+            gameArea.innerHTML = '';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="player-name">${myName}</div>
+                <div class="tap-text">👆 Tap to Reveal</div>
+            `;
+            card.onclick = () => revealCard(card);
+            gameArea.appendChild(card);
+            
+            if (myRole.name === 'KING') {
+                document.getElementById('endRoundBtn').classList.remove('hidden');
+            }
+        }
+        
+        function revealCard(card) {
+            if (revealed) return;
+            
+            revealed = true;
+            card.classList.add('revealed');
+            card.innerHTML = `
+                <div class="player-name">${myName}</div>
+                <div class="role-emoji">${myRole.emoji}</div>
+                <div class="role">${myRole.name}</div>
+            `;
+            card.onclick = null;
+            
+            playSound(800, 0.2);
+            
+            if (myRole.name === 'KING') {
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance("Who is my Wazeer? Guess who is police and thief?");
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1.1;
+                    window.speechSynthesis.speak(utterance);
+                }, 500);
+            }
+        }
+        
+        function endRound() {
+            if (myRole.name !== 'KING') {
+                alert('Only the King can end the round!');
+                return;
+            }
+            
+            playSound(700, 0.2);
+            setTimeout(() => playSound(900, 0.2), 100);
+            
+            if (gameMode === 'multiplayer' && isHost) {
+                const shuffledRoles = shuffle(roles);
+                
+                players.forEach((player, index) => {
+                    const role = shuffledRoles[index];
+                    
+                    if (player.isHost) {
+                        myRole = role;
+                    } else {
+                        connections[index - 1].send({ 
+                            type: 'reset', 
+                            role: role 
+                        });
+                    }
+                });
+                
+                revealed = false;
+                document.getElementById('endRoundBtn').classList.add('hidden');
+                showGameCard();
+            } else if (gameMode === 'local') {
+                startLocalGame();
+            }
+        }
+        
+        // Local game functions
+        let currentPlayer = 0;
+        let localRoles = [];
+        
+        function startLocalGame() {
+            localRoles = shuffle(roles);
+            currentPlayer = 0;
+            showLocalCard();
+        }
+        
+        function showLocalCard() {
+            const gameArea = document.getElementById('gameArea');
+            gameArea.classList.remove('hidden');
+            gameArea.innerHTML = '';
+            
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="player-name">Player ${currentPlayer + 1}</div>
+                <div class="tap-text">👆 Tap to Reveal</div>
+            `;
+            card.onclick = () => revealLocalCard(card);
+            gameArea.appendChild(card);
+        }
+        
+        function revealLocalCard(card) {
+            const role = localRoles[currentPlayer];
+            card.classList.add('revealed');
+            card.innerHTML = `
+                <div class="player-name">Player ${currentPlayer + 1}</div>
+                <div class="role-emoji">${role.emoji}</div>
+                <div class="role">${role.name}</div>
+            `;
+            card.onclick = null;
+            
+            playSound(800, 0.2);
+            
+            setTimeout(() => {
+                currentPlayer++;
+                
+                if (currentPlayer < 4) {
+                    playSound(600, 0.15);
+                    showLocalCard();
+                } else {
+                    document.getElementById('gameArea').innerHTML = '';
+                    const endBtn = document.createElement('button');
+                    endBtn.className = 'end-round-btn';
+                    endBtn.textContent = '🔄 Play Again';
+                    endBtn.onclick = startLocalGame;
+                    document.getElementById('gameArea').appendChild(endBtn);
+                    
+                    setTimeout(() => {
+                        const utterance = new SpeechSynthesisUtterance("Who is my Wazeer? Guess who is police and thief?");
+                        utterance.rate = 0.9;
+                        utterance.pitch = 1.1;
+                        window.speechSynthesis.speak(utterance);
+                    }, 500);
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
