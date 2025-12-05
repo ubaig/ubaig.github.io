@@ -526,10 +526,13 @@
                 if (player.isHost) {
                     myRole = role;
                 } else {
-                    connections[index - 1].send({ 
-                        type: 'start', 
-                        role: role 
-                    });
+                    const conn = connections[index - 1];
+                    if (conn && conn.open) {
+                        conn.send({ 
+                            type: 'start', 
+                            role: role 
+                        });
+                    }
                 }
             });
             
