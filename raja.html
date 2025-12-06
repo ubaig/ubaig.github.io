@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>938 King Wazeer Thief Police</title>
+    <title>951 King Wazeer Thief Police</title>
     <style>
         * {
             margin: 0;
@@ -120,6 +120,93 @@
             border-radius: 5px;
             margin-bottom: 8px;
             font-weight: 500;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .player-name-text {
+            flex: 1;
+        }
+
+        .remove-player-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .remove-player-btn:hover {
+            background: #cc0000;
+            transform: scale(1.05);
+        }
+
+        .host-controls-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .host-controls-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        .host-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            min-width: 250px;
+            max-width: 350px;
+            z-index: 999;
+        }
+
+        .host-panel-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .host-panel .player-item {
+            margin-bottom: 10px;
+        }
+
+        .host-panel-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s;
+        }
+
+        .host-panel-close:hover {
+            color: #333;
         }
 
         .game-area {
@@ -272,6 +359,14 @@
         <!-- Game Area -->
         <div id="gameArea" class="hidden"></div>
         <button class="end-round-btn hidden" id="endRoundBtn" onclick="endRound()">👑 End Round (King Only)</button>
+
+        <!-- Host Controls -->
+        <button class="host-controls-btn hidden" id="hostControlsBtn" onclick="toggleHostPanel()">⚙️</button>
+        <div class="host-panel hidden" id="hostPanel">
+            <button class="host-panel-close" onclick="toggleHostPanel()">✕</button>
+            <div class="host-panel-title">Manage Players</div>
+            <div id="hostPlayersList"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
@@ -314,6 +409,35 @@
             oscillator.stop(audioContext.currentTime + duration);
         }
 
+        function speakAsKing(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+
+            // Try to select a male voice for consistency
+            const voices = window.speechSynthesis.getVoices();
+
+            // Prefer male English voices
+            const maleVoice = voices.find(voice =>
+                voice.lang.startsWith('en') &&
+                (voice.name.toLowerCase().includes('male') ||
+                    voice.name.toLowerCase().includes('david') ||
+                    voice.name.toLowerCase().includes('james') ||
+                    voice.name.toLowerCase().includes('george'))
+            );
+
+            // Fallback to any English voice
+            const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
+
+            if (maleVoice) {
+                utterance.voice = maleVoice;
+            } else if (englishVoice) {
+                utterance.voice = englishVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
         function shuffle(array) {
             const arr = [...array];
             for (let i = arr.length - 1; i > 0; i--) {
@@ -330,6 +454,8 @@
             document.getElementById('waitingRoom').classList.add('hidden');
             document.getElementById('gameArea').classList.add('hidden');
             document.getElementById('endRoundBtn').classList.add('hidden');
+            document.getElementById('hostControlsBtn').classList.add('hidden');
+            document.getElementById('hostPanel').classList.add('hidden');
         }
 
         function showLocalGame() {
@@ -502,6 +628,9 @@
                 myRole = data.role;
                 revealed = false;
                 showGameCard();
+            } else if (data.type === 'kicked') {
+                alert(data.message + '. You can rejoin if needed.');
+                showMainMenu();
             } else if (data.type === 'error') {
                 alert(data.message);
                 showMainMenu();
@@ -517,10 +646,70 @@
 
         function updatePlayersList() {
             const list = document.getElementById('playersList');
-            list.innerHTML = players.map(p =>
-                `<div class="player-item">${p.name}${p.isHost ? ' (Host)' : ''}</div>`
-            ).join('');
+            list.innerHTML = players.map((p, index) => {
+                const removeBtn = isHost && !p.isHost
+                    ? `<button class="remove-player-btn" onclick="removePlayer(${index})">✕ Remove</button>`
+                    : '';
+                return `<div class="player-item">
+                    <span class="player-name-text">${p.name}${p.isHost ? ' (Host)' : ''}</span>
+                    ${removeBtn}
+                </div>`;
+            }).join('');
             document.getElementById('playerCount').textContent = players.length;
+
+            // Also update host panel if it exists
+            updateHostPanel();
+        }
+
+        function updateHostPanel() {
+            if (!isHost) return;
+
+            const hostList = document.getElementById('hostPlayersList');
+            if (!hostList) return;
+
+            hostList.innerHTML = players.map((p, index) => {
+                const removeBtn = !p.isHost
+                    ? `<button class="remove-player-btn" onclick="removePlayer(${index})">✕ Remove</button>`
+                    : '';
+                return `<div class="player-item">
+                    <span class="player-name-text">${p.name}${p.isHost ? ' (Host)' : ''}</span>
+                    ${removeBtn}
+                </div>`;
+            }).join('');
+        }
+
+        function toggleHostPanel() {
+            const panel = document.getElementById('hostPanel');
+            panel.classList.toggle('hidden');
+            updateHostPanel();
+        }
+
+        function removePlayer(playerIndex) {
+            if (!isHost || playerIndex === 0) {
+                return; // Can't remove host or if not host
+            }
+
+            const removedPlayer = players[playerIndex];
+
+            // Close the connection to this player
+            const connectionIndex = playerIndex - 1; // Adjust for host not being in connections array
+            if (connections[connectionIndex]) {
+                connections[connectionIndex].send({
+                    type: 'kicked',
+                    message: 'You have been removed by the host'
+                });
+                connections[connectionIndex].close();
+                connections.splice(connectionIndex, 1);
+            }
+
+            // Remove from players array
+            players.splice(playerIndex, 1);
+
+            // Update UI
+            updatePlayersList();
+
+            // Broadcast updated player list to remaining players
+            broadcastToAll({ type: 'players', players: players });
         }
 
         function broadcastToAll(data) {
@@ -573,6 +762,11 @@
             if (myRole.name === 'KING') {
                 startEndRoundCountdown();
             }
+
+            // Show host controls for multiplayer hosts
+            if (isHost && gameMode === 'multiplayer') {
+                document.getElementById('hostControlsBtn').classList.remove('hidden');
+            }
         }
 
         function revealCard(card) {
@@ -591,10 +785,7 @@
 
             if (myRole.name === 'KING') {
                 setTimeout(() => {
-                    const utterance = new SpeechSynthesisUtterance("Who is my Wazeer? Guess who is police and thief?");
-                    utterance.rate = 0.9;
-                    utterance.pitch = 1.1;
-                    window.speechSynthesis.speak(utterance);
+                    speakAsKing("Who is my Wazeer? Guess who is police and thief?");
                 }, 500);
             }
         }
@@ -734,10 +925,7 @@
                     document.getElementById('gameArea').appendChild(endBtn);
 
                     setTimeout(() => {
-                        const utterance = new SpeechSynthesisUtterance("Who is my Wazeer? Guess who is police and thief?");
-                        utterance.rate = 0.9;
-                        utterance.pitch = 1.1;
-                        window.speechSynthesis.speak(utterance);
+                        speakAsKing("Who is my Wazeer? Guess who is police and thief?");
                     }, 500);
                 }
             }, 2000);
