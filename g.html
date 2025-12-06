@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v1.120625.0745 Number Guessing Game</title>
+    <title>v1.241206.0801 - Number Guessing Game</title>
     <style>
         * {
             margin: 0;
@@ -28,6 +28,42 @@
             padding: 40px;
             max-width: 500px;
             width: 100%;
+            position: relative;
+        }
+
+        .exit-button {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            color: #666;
+            font-size: 24px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            padding: 0;
+        }
+
+        .exit-button:hover {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff6b6b;
+            transform: rotate(90deg) translateY(0);
+            box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+        }
+
+        .exit-button:active {
+            transform: rotate(90deg) scale(0.95);
+        }
+
+        .exit-button.active {
+            display: flex;
         }
 
         h1 {
@@ -54,6 +90,22 @@
             margin-bottom: 8px;
             color: #555;
             font-weight: 600;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            background: white;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
         }
 
         input[type="number"] {
@@ -83,13 +135,18 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
         }
 
-        button:active {
+        button:active:not(:disabled) {
             transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .heat-indicator {
@@ -195,6 +252,7 @@
 </head>
 <body>
     <div class="container">
+        <button class="exit-button" id="exitButton" onclick="confirmExit()" title="Exit to Menu">×</button>
         <h1>🎯 Guess the Number</h1>
         
         <div class="setup-screen active">
@@ -207,8 +265,12 @@
                 <input type="number" id="maxRange" value="100" min="2">
             </div>
             <div class="input-group">
-                <label for="attempts">Number of Attempts:</label>
-                <input type="number" id="attempts" value="3" min="1" max="10">
+                <label for="difficulty">Difficulty Level:</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="hard">Hard</option>
+                </select>
             </div>
             <button onclick="startGame()">Start Game</button>
         </div>
@@ -216,6 +278,8 @@
         <div class="game-screen">
             <div class="info-box">
                 <p><strong>Range:</strong> <span id="rangeDisplay"></span></p>
+                <p><strong>Difficulty:</strong> <span id="difficultyDisplay"></span></p>
+                <p><strong>Total Attempts:</strong> <span id="totalAttempts"></span></p>
                 <p><strong>Attempts Remaining:</strong> <span id="attemptsLeft"></span></p>
             </div>
 
@@ -251,11 +315,23 @@
         function startGame() {
             min = parseInt(document.getElementById('minRange').value);
             max = parseInt(document.getElementById('maxRange').value);
-            maxAttempts = parseInt(document.getElementById('attempts').value);
+            const difficulty = document.getElementById('difficulty').value;
 
             if (min >= max) {
                 alert('Maximum number must be greater than minimum number!');
                 return;
+            }
+
+            // Calculate attempts based on difficulty
+            const N = max - min + 1;
+            const A = Math.ceil(Math.log2(N));
+            
+            if (difficulty === 'hard') {
+                maxAttempts = A;
+            } else if (difficulty === 'normal') {
+                maxAttempts = A + 2;
+            } else { // easy
+                maxAttempts = A + 4;
             }
 
             secretNumber = Math.floor(Math.random() * (max - min + 1)) + min;
@@ -265,8 +341,11 @@
 
             document.querySelector('.setup-screen').classList.remove('active');
             document.querySelector('.game-screen').classList.add('active');
+            document.getElementById('exitButton').classList.add('active');
 
             document.getElementById('rangeDisplay').textContent = `${min} - ${max}`;
+            document.getElementById('difficultyDisplay').textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+            document.getElementById('totalAttempts').textContent = maxAttempts;
             document.getElementById('attemptsLeft').textContent = maxAttempts;
             document.getElementById('guessInput').min = min;
             document.getElementById('guessInput').max = max;
@@ -378,10 +457,17 @@
         function resetGame() {
             document.querySelector('.setup-screen').classList.add('active');
             document.querySelector('.game-screen').classList.remove('active');
+            document.getElementById('exitButton').classList.remove('active');
             document.getElementById('guessInput').disabled = false;
             document.querySelector('.game-screen button:not(.play-again)').disabled = false;
             document.getElementById('historyList').innerHTML = '';
             document.getElementById('heatIndicator').style.opacity = '0';
+        }
+
+        function confirmExit() {
+            if (confirm('Are you sure you want to exit to the menu? Your current game will be lost.')) {
+                resetGame();
+            }
         }
 
         document.getElementById('guessInput').addEventListener('keypress', function(e) {
