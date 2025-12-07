@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>v1.241206.0801 - Number Guessing Game</title>
+    <title>v1.241206.2111 - Number Guessing Game</title>
     <style>
         * {
             margin: 0;
@@ -85,6 +85,32 @@
             margin-bottom: 20px;
         }
 
+        .guess-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            margin-bottom: 20px;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+
+        .guess-input-row.collapsed {
+            max-height: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
+        .guess-input-row .input-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .guess-input-row button {
+            flex-shrink: 0;
+            width: auto;
+            padding: 12px 30px;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
@@ -162,6 +188,14 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             transition: all 0.5s ease;
             box-shadow: inset 0 4px 8px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .heat-indicator.collapsed {
+            max-height: 0;
+            margin: 0;
+            padding: 0;
+            opacity: 0;
         }
 
         .cold {
@@ -182,6 +216,15 @@
             border-radius: 10px;
             margin-bottom: 20px;
             text-align: center;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+
+        .info-box.collapsed {
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+            opacity: 0;
         }
 
         .info-box p {
@@ -194,6 +237,14 @@
             gap: 10px;
             justify-content: center;
             margin: 20px 0;
+            transition: all 0.5s ease;
+            overflow: hidden;
+        }
+
+        .attempts.collapsed {
+            max-height: 0;
+            margin: 0;
+            opacity: 0;
         }
 
         .attempt-dot {
@@ -235,6 +286,9 @@
             font-size: 20px;
             margin: 20px 0;
             font-weight: 600;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
         }
 
         .win {
@@ -257,26 +311,18 @@
         
         <div class="setup-screen active">
             <div class="input-group">
-                <label for="minRange">Minimum Number:</label>
-                <input type="number" id="minRange" value="1" min="1">
-            </div>
-            <div class="input-group">
-                <label for="maxRange">Maximum Number:</label>
-                <input type="number" id="maxRange" value="100" min="2">
-            </div>
-            <div class="input-group">
-                <label for="difficulty">Difficulty Level:</label>
+                <label for="difficulty">Choose Difficulty Level:</label>
                 <select id="difficulty">
-                    <option value="easy">Easy</option>
-                    <option value="normal" selected>Normal</option>
-                    <option value="hard">Hard</option>
+                    <option value="easy">Easy (1-10 or 1-20)</option>
+                    <option value="normal" selected>Normal (1-50 or 1-100)</option>
+                    <option value="hard">Hard (1-200 or 1-500)</option>
                 </select>
             </div>
             <button onclick="startGame()">Start Game</button>
         </div>
 
         <div class="game-screen">
-            <div class="info-box">
+            <div class="info-box" id="infoBox">
                 <p><strong>Range:</strong> <span id="rangeDisplay"></span></p>
                 <p><strong>Difficulty:</strong> <span id="difficultyDisplay"></span></p>
                 <p><strong>Total Attempts:</strong> <span id="totalAttempts"></span></p>
@@ -289,21 +335,25 @@
                 Ready to guess!
             </div>
 
-            <div class="input-group">
-                <label for="guessInput">Enter your guess:</label>
-                <input type="number" id="guessInput" min="1">
-            </div>
-
-            <button onclick="makeGuess()">Submit Guess</button>
-
-            <div class="guess-history" id="guessHistory" style="display: none;">
-                <h3>Your Guesses:</h3>
-                <div id="historyList"></div>
+            <div class="guess-input-row" id="guessInputRow">
+                <div class="input-group">
+                    <label for="guessInput">Enter your guess:</label>
+                    <input type="number" id="guessInput" min="1">
+                </div>
+                <button id="submitButton" onclick="makeGuess()">Submit Guess</button>
             </div>
 
             <div id="resultSection" style="display: none;">
                 <div class="result-message" id="resultMessage"></div>
+            </div>
+
+            <div id="playAgainSection" style="display: none;">
                 <button class="play-again" onclick="resetGame()">Play Again</button>
+            </div>
+
+            <div class="guess-history" id="guessHistory" style="display: none;">
+                <h3>Your Guesses:</h3>
+                <div id="historyList"></div>
             </div>
         </div>
     </div>
@@ -313,14 +363,23 @@
         let guesses = [];
 
         function startGame() {
-            min = parseInt(document.getElementById('minRange').value);
-            max = parseInt(document.getElementById('maxRange').value);
             const difficulty = document.getElementById('difficulty').value;
 
-            if (min >= max) {
-                alert('Maximum number must be greater than minimum number!');
-                return;
+            // Set min to always 1
+            min = 1;
+            
+            // Determine max based on difficulty
+            let possibleRanges;
+            if (difficulty === 'easy') {
+                possibleRanges = [10, 20];
+            } else if (difficulty === 'normal') {
+                possibleRanges = [50, 100];
+            } else { // hard
+                possibleRanges = [200, 500];
             }
+            
+            // Randomly pick one of the two ranges
+            max = possibleRanges[Math.floor(Math.random() * 2)];
 
             // Calculate attempts based on difficulty
             const N = max - min + 1;
@@ -352,6 +411,13 @@
             document.getElementById('guessInput').value = '';
             document.getElementById('guessHistory').style.display = 'none';
             document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('playAgainSection').style.display = 'none';
+
+            // Remove collapsed classes if they exist
+            document.getElementById('infoBox').classList.remove('collapsed');
+            document.getElementById('attemptDots').classList.remove('collapsed');
+            document.getElementById('heatIndicator').classList.remove('collapsed');
+            document.getElementById('guessInputRow').classList.remove('collapsed');
 
             renderAttemptDots();
         }
@@ -429,28 +495,45 @@
             const item = document.createElement('div');
             item.className = 'guess-item';
             item.innerHTML = `<span>Guess ${attemptsUsed}: <strong>${guess}</strong></span><span>${feedback}</span>`;
-            historyList.appendChild(item);
+            
+            // Insert at the beginning to show in reverse order (most recent first)
+            historyList.insertBefore(item, historyList.firstChild);
         }
 
         function endGame(won) {
             gameOver = true;
+            
+            // Get elements
+            const infoBox = document.getElementById('infoBox');
+            const attemptDots = document.getElementById('attemptDots');
+            const heatIndicator = document.getElementById('heatIndicator');
+            const guessInputRow = document.getElementById('guessInputRow');
+            const guessInput = document.getElementById('guessInput');
+            const submitButton = document.getElementById('submitButton');
             const resultSection = document.getElementById('resultSection');
             const resultMessage = document.getElementById('resultMessage');
-            const heatIndicator = document.getElementById('heatIndicator');
+            const playAgainSection = document.getElementById('playAgainSection');
 
+            // Collapse game elements
+            infoBox.classList.add('collapsed');
+            attemptDots.classList.add('collapsed');
+            heatIndicator.classList.add('collapsed');
+            guessInputRow.classList.add('collapsed');
+
+            // Disable inputs
+            guessInput.disabled = true;
+            submitButton.disabled = true;
+
+            // Show results
             resultSection.style.display = 'block';
-            document.getElementById('guessInput').disabled = true;
-            document.querySelector('.game-screen button:not(.play-again)').disabled = true;
+            playAgainSection.style.display = 'block';
 
             if (won) {
                 resultMessage.className = 'result-message win';
                 resultMessage.textContent = `🎉 Congratulations! You guessed it in ${attemptsUsed} attempt${attemptsUsed > 1 ? 's' : ''}!`;
-                heatIndicator.className = 'heat-indicator hot';
-                heatIndicator.textContent = '🎯 CORRECT!';
             } else {
                 resultMessage.className = 'result-message lose';
                 resultMessage.textContent = `😢 Game Over! The number was ${secretNumber}`;
-                heatIndicator.style.opacity = '0.5';
             }
         }
 
@@ -458,10 +541,22 @@
             document.querySelector('.setup-screen').classList.add('active');
             document.querySelector('.game-screen').classList.remove('active');
             document.getElementById('exitButton').classList.remove('active');
+            
+            // Restore collapsed elements
+            document.getElementById('infoBox').classList.remove('collapsed');
+            document.getElementById('attemptDots').classList.remove('collapsed');
+            document.getElementById('heatIndicator').classList.remove('collapsed');
+            document.getElementById('guessInputRow').classList.remove('collapsed');
+            
+            // Re-enable inputs
             document.getElementById('guessInput').disabled = false;
-            document.querySelector('.game-screen button:not(.play-again)').disabled = false;
+            document.getElementById('submitButton').disabled = false;
+            
+            // Clear history and reset displays
             document.getElementById('historyList').innerHTML = '';
             document.getElementById('heatIndicator').style.opacity = '0';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('playAgainSection').style.display = 'none';
         }
 
         function confirmExit() {
