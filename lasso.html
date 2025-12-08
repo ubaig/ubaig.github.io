@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>856 Chain Game</title>
+  <title>917 Number Path Chain Game</title>
   <style>
     * {
       box-sizing: border-box;
@@ -36,6 +36,7 @@
       display: block;
       margin: 10px 0;
       width: 100%;
+      height: 500px;
       max-width: 800px;
       -webkit-user-select: none;
       -moz-user-select: none;
@@ -91,13 +92,14 @@
       button { padding: 10px 15px; font-size: 14px; }
       #msg { font-size: 14px; }
       .info { font-size: 12px; }
+      #board { height: 400px; }
     }
   </style>
 </head>
 <body>
   <h2>🔗 Number Path Chain</h2>
   <div id="container">
-    <svg id="board" width="800" height="500" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet"></svg>
+    <svg id="board" width="100%" height="500"></svg>
   </div>
   <div id="msg"></div>
   <div id="stats">
@@ -128,8 +130,8 @@
     let gameOver = false;
     
     const NUM_CIRCLES = 8;
-    const CIRCLE_R = 18;
-    const MIN_DIST = 80;
+    const CIRCLE_R = 28;
+    const MIN_DIST = 100;
     const SVG_WIDTH = 800;
     const SVG_HEIGHT = 500;
 
@@ -161,13 +163,18 @@
       targetNum2 = null;
       svg.innerHTML = '';
 
+      // Use actual SVG dimensions
+      const rect = svg.getBoundingClientRect();
+      const width = rect.width;
+      const height = rect.height;
+
       // Generate random positions
       for (let i = 0; i < NUM_CIRCLES; i++) {
         let x, y, ok;
         do {
           ok = true;
-          x = CIRCLE_R * 2 + Math.random() * (SVG_WIDTH - 4 * CIRCLE_R);
-          y = CIRCLE_R * 2 + Math.random() * (SVG_HEIGHT - 4 * CIRCLE_R);
+          x = CIRCLE_R * 2 + Math.random() * (width - 4 * CIRCLE_R);
+          y = CIRCLE_R * 2 + Math.random() * (height - 4 * CIRCLE_R);
           for (const c of circles) {
             if (Math.hypot(c.x - x, c.y - y) < MIN_DIST) {
               ok = false;
@@ -230,9 +237,9 @@
 
       const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       txt.setAttribute('x', c.x);
-      txt.setAttribute('y', c.y + 5);
+      txt.setAttribute('y', c.y + 7);
       txt.setAttribute('text-anchor', 'middle');
-      txt.setAttribute('font-size', '16');
+      txt.setAttribute('font-size', '20');
       txt.setAttribute('font-weight', 'bold');
       txt.setAttribute('fill', 'white');
       txt.textContent = c.num;
@@ -259,20 +266,31 @@
     }
 
     function startDrawing(point) {
+      console.log('=== START DRAWING ===');
+      console.log('Point:', point);
+      console.log('GameOver:', gameOver);
+      console.log('Target numbers:', targetNum1, targetNum2);
+      
       if (gameOver) return;
 
-      // Find which circle user clicked on
+      // Find which circle user clicked on (with larger tolerance for mobile)
       let clickedCircle = null;
+      const touchTolerance = 50; // Much larger margin for mobile (was 15)
+      
       for (const c of circles) {
         const dist = Math.hypot(point.x - c.x, point.y - c.y);
-        if (dist <= c.r + 5) {
+        console.log(`Circle ${c.num}: distance=${dist.toFixed(2)}, threshold=${c.r + touchTolerance}`);
+        if (dist <= c.r + touchTolerance) {
           clickedCircle = c;
           break;
         }
       }
 
+      console.log('Clicked circle:', clickedCircle);
+
       // Must start from one of the two target numbers
       if (!clickedCircle || (clickedCircle.num !== targetNum1 && clickedCircle.num !== targetNum2)) {
+        console.log('Invalid start - not a target number');
         setMsg(`Start from ${targetNum1} or ${targetNum2}!`, 'err');
         return;
       }
@@ -280,6 +298,8 @@
       drawing = true;
       currentStartCircle = clickedCircle;
       currentPath = [point];
+
+      console.log('Drawing started from circle:', currentStartCircle.num);
 
       // Remove old polyline safely
       if (currentPolyline && currentPolyline.parentNode === svg) {
@@ -289,7 +309,7 @@
       currentPolyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
       currentPolyline.setAttribute('fill', 'none');
       currentPolyline.setAttribute('stroke', '#FF5722');
-      currentPolyline.setAttribute('stroke-width', '3');
+      currentPolyline.setAttribute('stroke-width', '4');
       currentPolyline.setAttribute('stroke-linecap', 'round');
       currentPolyline.setAttribute('stroke-linejoin', 'round');
       svg.appendChild(currentPolyline);
@@ -307,24 +327,35 @@
       const dy = point.y - last.y;
       if (dx * dx + dy * dy < 9) return;
 
+      console.log('--- ADD POINT ---');
+      console.log('Point:', point);
+      console.log('Current path length:', currentPath.length);
+
       // Determine which number is the target (the one we're NOT starting from)
       const targetNum = currentStartCircle.num === targetNum1 ? targetNum2 : targetNum1;
 
       // Check collision with ANY circle except the one we started from
+      // Use more forgiving collision detection (add margin)
+      const collisionMargin = 15; // Much larger margin for mobile (was 5)
       const otherCircles = circles.filter(c => c.num !== currentStartCircle.num);
-      const hitCircle = otherCircles.find(c => 
-        distPointToSegment(c.x, c.y, last.x, last.y, point.x, point.y) <= c.r
-      );
+      const hitCircle = otherCircles.find(c => {
+        const dist = distPointToSegment(c.x, c.y, last.x, last.y, point.x, point.y);
+        console.log(`Check circle ${c.num}: distance=${dist.toFixed(2)}, threshold=${c.r + collisionMargin}`);
+        return dist <= c.r + collisionMargin;
+      });
       
       if (hitCircle) {
+        console.log('HIT CIRCLE:', hitCircle.num, 'Target was:', targetNum);
         currentPath.push(point);
         updatePolyline();
         
         // Check if this is the correct target
         if (hitCircle.num === targetNum) {
+          console.log('SUCCESS! Connected to target');
           endDrawing(true, hitCircle);
         } else {
           // Hit the wrong number - GAME OVER
+          console.log('GAME OVER - wrong circle');
           endGame(`Hit number ${hitCircle.num}! You needed to reach ${targetNum}!`);
         }
         return;
@@ -332,6 +363,7 @@
 
       // Check if path crosses any existing paths
       if (pathCrossesExistingPaths(last, point)) {
+        console.log('GAME OVER - path crossing detected');
         currentPath.push(point);
         updatePolyline();
         endGame('Crossed your own path!');
@@ -349,7 +381,7 @@
       if (success && targetCircle && currentPath.length > 2) {
         // Success! Save this path
         currentPolyline.setAttribute('stroke', '#4CAF50');
-        currentPolyline.setAttribute('stroke-width', '2.5');
+        currentPolyline.setAttribute('stroke-width', '3.5');
         paths.push({
           points: [...currentPath],
           polyline: currentPolyline
@@ -423,14 +455,20 @@
         clientY = e.clientY;
       }
       
-      // Scale coordinates based on viewBox
-      const scaleX = SVG_WIDTH / rect.width;
-      const scaleY = SVG_HEIGHT / rect.height;
+      // Get SVG's internal coordinate system
+      const point = svg.createSVGPoint();
+      point.x = clientX;
+      point.y = clientY;
       
-      return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-      };
+      // Transform to SVG coordinates
+      const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
+      
+      console.log('Touch coords - client:', {x: clientX, y: clientY}, 
+                  'SVG:', {x: svgPoint.x.toFixed(2), y: svgPoint.y.toFixed(2)},
+                  'Rect:', {left: rect.left.toFixed(2), top: rect.top.toFixed(2), 
+                           width: rect.width.toFixed(2), height: rect.height.toFixed(2)});
+      
+      return {x: svgPoint.x, y: svgPoint.y};
     }
 
     function distPointToSegment(px, py, x1, y1, x2, y2) {
@@ -481,30 +519,43 @@
     }
 
     // Handle both pointer and touch events for better mobile support
+    let isHandlingEvent = false; // Prevent duplicate event handling
+    
     function handleStart(e) {
+      if (isHandlingEvent) return;
+      isHandlingEvent = true;
+      
+      console.log('🎯 HANDLE START - Event type:', e.type);
       e.preventDefault();
       e.stopPropagation();
       startDrawing(svgPointFromEvent(e));
+      
+      setTimeout(() => { isHandlingEvent = false; }, 50);
     }
 
     function handleMove(e) {
       if (!drawing) return;
+      console.log('👆 HANDLE MOVE - Drawing:', drawing);
       e.preventDefault();
       e.stopPropagation();
       addPoint(svgPointFromEvent(e));
     }
 
     function handleEnd(e) {
+      console.log('🛑 HANDLE END - Drawing:', drawing, 'GameOver:', gameOver);
       if (!drawing || gameOver) return;
       e.preventDefault();
       e.stopPropagation();
       endDrawing(false, null);
+      isHandlingEvent = false;
     }
 
     function handleLeave(e) {
+      console.log('🚪 HANDLE LEAVE');
       if (drawing && !gameOver) {
         endDrawing(false, null);
       }
+      isHandlingEvent = false;
     }
 
     // Pointer events
