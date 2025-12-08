@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>917 Number Path Chain Game</title>
+  <title>943 Number Path Chain Game</title>
   <style>
     * {
       box-sizing: border-box;
@@ -151,17 +151,38 @@
     }
 
     function initGame() {
-      circles = [];
-      paths = [];
-      currentPath = [];
+      // Clear all existing state
       drawing = false;
-      connectedCount = 0;
       gameOver = false;
+      connectedCount = 0;
       currentStartCircle = null;
-      currentPolyline = null;
       targetNum1 = null;
       targetNum2 = null;
-      svg.innerHTML = '';
+      
+      // Clear paths and polylines
+      if (currentPolyline && currentPolyline.parentNode === svg) {
+        svg.removeChild(currentPolyline);
+      }
+      currentPolyline = null;
+      currentPath = [];
+      
+      // Clear all path references
+      paths.forEach(path => {
+        if (path.polyline && path.polyline.parentNode === svg) {
+          svg.removeChild(path.polyline);
+        }
+        path.points = null;
+        path.polyline = null;
+      });
+      paths = [];
+      
+      // Clear circles
+      circles = [];
+      
+      // Force clear SVG DOM
+      while (svg.firstChild) {
+        svg.removeChild(svg.firstChild);
+      }
 
       // Use actual SVG dimensions
       const rect = svg.getBoundingClientRect();
@@ -266,11 +287,6 @@
     }
 
     function startDrawing(point) {
-      console.log('=== START DRAWING ===');
-      console.log('Point:', point);
-      console.log('GameOver:', gameOver);
-      console.log('Target numbers:', targetNum1, targetNum2);
-      
       if (gameOver) return;
 
       // Find which circle user clicked on (with larger tolerance for mobile)
@@ -279,18 +295,14 @@
       
       for (const c of circles) {
         const dist = Math.hypot(point.x - c.x, point.y - c.y);
-        console.log(`Circle ${c.num}: distance=${dist.toFixed(2)}, threshold=${c.r + touchTolerance}`);
         if (dist <= c.r + touchTolerance) {
           clickedCircle = c;
           break;
         }
       }
 
-      console.log('Clicked circle:', clickedCircle);
-
       // Must start from one of the two target numbers
       if (!clickedCircle || (clickedCircle.num !== targetNum1 && clickedCircle.num !== targetNum2)) {
-        console.log('Invalid start - not a target number');
         setMsg(`Start from ${targetNum1} or ${targetNum2}!`, 'err');
         return;
       }
@@ -298,8 +310,6 @@
       drawing = true;
       currentStartCircle = clickedCircle;
       currentPath = [point];
-
-      console.log('Drawing started from circle:', currentStartCircle.num);
 
       // Remove old polyline safely
       if (currentPolyline && currentPolyline.parentNode === svg) {
@@ -327,10 +337,6 @@
       const dy = point.y - last.y;
       if (dx * dx + dy * dy < 9) return;
 
-      console.log('--- ADD POINT ---');
-      console.log('Point:', point);
-      console.log('Current path length:', currentPath.length);
-
       // Determine which number is the target (the one we're NOT starting from)
       const targetNum = currentStartCircle.num === targetNum1 ? targetNum2 : targetNum1;
 
@@ -340,22 +346,18 @@
       const otherCircles = circles.filter(c => c.num !== currentStartCircle.num);
       const hitCircle = otherCircles.find(c => {
         const dist = distPointToSegment(c.x, c.y, last.x, last.y, point.x, point.y);
-        console.log(`Check circle ${c.num}: distance=${dist.toFixed(2)}, threshold=${c.r + collisionMargin}`);
         return dist <= c.r + collisionMargin;
       });
       
       if (hitCircle) {
-        console.log('HIT CIRCLE:', hitCircle.num, 'Target was:', targetNum);
         currentPath.push(point);
         updatePolyline();
         
         // Check if this is the correct target
         if (hitCircle.num === targetNum) {
-          console.log('SUCCESS! Connected to target');
           endDrawing(true, hitCircle);
         } else {
           // Hit the wrong number - GAME OVER
-          console.log('GAME OVER - wrong circle');
           endGame(`Hit number ${hitCircle.num}! You needed to reach ${targetNum}!`);
         }
         return;
@@ -363,7 +365,6 @@
 
       // Check if path crosses any existing paths
       if (pathCrossesExistingPaths(last, point)) {
-        console.log('GAME OVER - path crossing detected');
         currentPath.push(point);
         updatePolyline();
         endGame('Crossed your own path!');
@@ -463,11 +464,6 @@
       // Transform to SVG coordinates
       const svgPoint = point.matrixTransform(svg.getScreenCTM().inverse());
       
-      console.log('Touch coords - client:', {x: clientX, y: clientY}, 
-                  'SVG:', {x: svgPoint.x.toFixed(2), y: svgPoint.y.toFixed(2)},
-                  'Rect:', {left: rect.left.toFixed(2), top: rect.top.toFixed(2), 
-                           width: rect.width.toFixed(2), height: rect.height.toFixed(2)});
-      
       return {x: svgPoint.x, y: svgPoint.y};
     }
 
@@ -525,7 +521,6 @@
       if (isHandlingEvent) return;
       isHandlingEvent = true;
       
-      console.log('🎯 HANDLE START - Event type:', e.type);
       e.preventDefault();
       e.stopPropagation();
       startDrawing(svgPointFromEvent(e));
@@ -535,14 +530,12 @@
 
     function handleMove(e) {
       if (!drawing) return;
-      console.log('👆 HANDLE MOVE - Drawing:', drawing);
       e.preventDefault();
       e.stopPropagation();
       addPoint(svgPointFromEvent(e));
     }
 
     function handleEnd(e) {
-      console.log('🛑 HANDLE END - Drawing:', drawing, 'GameOver:', gameOver);
       if (!drawing || gameOver) return;
       e.preventDefault();
       e.stopPropagation();
@@ -551,7 +544,6 @@
     }
 
     function handleLeave(e) {
-      console.log('🚪 HANDLE LEAVE');
       if (drawing && !gameOver) {
         endDrawing(false, null);
       }
