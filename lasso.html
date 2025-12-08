@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Number Path Chain Game</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body { 
+      font-family: sans-serif; 
+      margin: 0;
+      padding: 10px;
+      background: #f5f5f5;
+      overflow-x: hidden;
+    }
+    h2 {
+      color: #333;
+      margin: 10px 0;
+      font-size: 20px;
+    }
+    #container {
+      max-width: 100%;
+      overflow: hidden;
+    }
+    #board { 
+      border: 2px solid #999;
+      background: white;
+      touch-action: none;
+      display: block;
+      margin: 10px 0;
+      width: 100%;
+      max-width: 800px;
+    }
+    #msg { 
+      margin: 10px 0;
+      font-weight: bold;
+      font-size: 16px;
+      min-height: 24px;
+    }
+    #msg.ok { color: #4CAF50; }
+    #msg.err { color: #F44336; }
+    #msg.info { color: #2196F3; }
+    #msg.gameover { color: #FF5722; font-size: 18px; }
+    button { 
+      margin: 10px 5px;
+      padding: 12px 20px;
+      font-size: 16px;
+      background: #2196F3;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    button:hover {
+      background: #1976D2;
+    }
+    button:active {
+      transform: scale(0.95);
+    }
+    .info {
+      color: #666;
+      font-size: 14px;
+      margin: 10px 0;
+      line-height: 1.5;
+    }
+    #stats {
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+    #stats span {
+      display: inline-block;
+      margin-right: 15px;
+    }
+    @media (max-width: 600px) {
+      h2 { font-size: 18px; }
+      button { padding: 10px 15px; font-size: 14px; }
+      #msg { font-size: 14px; }
+      .info { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <h2>🔗 Number Path Chain</h2>
+  <div id="container">
+    <svg id="board" width="800" height="500" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+  <div id="msg"></div>
+  <div id="stats">
+    <span>✅ Connected: <strong id="connected">0</strong></span>
+    <span>📋 Total: <strong id="total">0</strong></span>
+    <span>🎯 Connect: <strong id="currentPair">-</strong></span>
+  </div>
+  <button id="resetBtn">🔄 New Game</button>
+  <div class="info">💡 Connect the two GREEN numbers! Start from either one. Don't hit other numbers or cross your paths!</div>
+
+  <script>
+    const svg = document.getElementById('board');
+    const msg = document.getElementById('msg');
+    const resetBtn = document.getElementById('resetBtn');
+    const connectedSpan = document.getElementById('connected');
+    const totalSpan = document.getElementById('total');
+    const currentPairSpan = document.getElementById('currentPair');
+
+    let circles = [];
+    let paths = []; // All completed paths
+    let currentPath = [];
+    let currentPolyline = null;
+    let drawing = false;
+    let currentStartCircle = null;
+    let targetNum1 = null; // First number of current pair
+    let targetNum2 = null; // Second number of current pair
+    let connectedCount = 0;
+    let gameOver = false;
+    
+    const NUM_CIRCLES = 8;
+    const CIRCLE_R = 18;
+    const MIN_DIST = 80;
+    const SVG_WIDTH = 800;
+    const SVG_HEIGHT = 500;
+
+    function setMsg(text, type = '') {
+      msg.textContent = text;
+      msg.className = type;
+    }
+
+    function updateStats() {
+      connectedSpan.textContent = connectedCount;
+      totalSpan.textContent = NUM_CIRCLES - 1;
+      if (targetNum1 && targetNum2) {
+        currentPairSpan.textContent = `${targetNum1} ↔ ${targetNum2}`;
+      } else {
+        currentPairSpan.textContent = '-';
+      }
+    }
+
+    function initGame() {
+      circles = [];
+      paths = [];
+      currentPath = [];
+      drawing = false;
+      connectedCount = 0;
+      gameOver = false;
+      svg.innerHTML = '';
+
+      // Generate random positions
+      for (let i = 0; i < NUM_CIRCLES; i++) {
+        let x, y, ok;
+        do {
+          ok = true;
+          x = CIRCLE_R * 2 + Math.random() * (SVG_WIDTH - 4 * CIRCLE_R);
+          y = CIRCLE_R * 2 + Math.random() * (SVG_HEIGHT - 4 * CIRCLE_R);
+          for (const c of circles) {
+            if (Math.hypot(c.x - x, c.y - y) < MIN_DIST) {
+              ok = false;
+              break;
+            }
+          }
+        } while (!ok);
+
+        circles.push({ x, y, r: CIRCLE_R, num: i + 1, connected: false });
+      }
+
+      // Draw all circles
+      circles.forEach(c => {
+        drawCircle(c);
+      });
+
+      setNextPair();
+      updateStats();
+    }
+
+    function setNextPair() {
+      const unconnected = circles.filter(c => !c.connected);
+      
+      if (unconnected.length === 0) {
+        gameOver = true;
+        targetNum1 = null;
+        targetNum2 = null;
+        setMsg('🎉🎉🎉 VICTORY! All numbers connected! 🎉🎉🎉', 'ok');
+        return;
+      }
+
+      if (unconnected.length === 1) {
+        // Last number needs to connect to something already connected
+        targetNum1 = unconnected[0].num;
+        const connected = circles.filter(c => c.connected);
+        targetNum2 = connected[Math.floor(Math.random() * connected.length)].num;
+      } else {
+        // Pick two unconnected numbers
+        targetNum1 = unconnected[0].num;
+        targetNum2 = unconnected[1 + Math.floor(Math.random() * (unconnected.length - 1))].num;
+      }
+
+      updateCircleColors();
+      setMsg(`Connect ${targetNum1} and ${targetNum2} - start from either one!`, 'info');
+      updateStats();
+    }
+
+    function drawCircle(c) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('data-num', c.num);
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', c.x);
+      circle.setAttribute('cy', c.y);
+      circle.setAttribute('r', c.r);
+      circle.setAttribute('fill', '#666');
+      circle.setAttribute('stroke', 'white');
+      circle.setAttribute('stroke-width', '2');
+      circle.classList.add('number-circle');
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', c.x);
+      txt.setAttribute('y', c.y + 5);
+      txt.setAttribute('text-anchor', 'middle');
+      txt.setAttribute('font-size', '16');
+      txt.setAttribute('font-weight', 'bold');
+      txt.setAttribute('fill', 'white');
+      txt.textContent = c.num;
+
+      g.appendChild(circle);
+      g.appendChild(txt);
+      svg.appendChild(g);
+    }
+
+    function updateCircleColors() {
+      circles.forEach(c => {
+        const g = svg.querySelector(`g[data-num="${c.num}"]`);
+        if (!g) return;
+        const circle = g.querySelector('circle');
+        
+        if (c.num === targetNum1 || c.num === targetNum2) {
+          circle.setAttribute('fill', '#4CAF50'); // Green for current targets
+        } else if (c.connected) {
+          circle.setAttribute('fill', '#9E9E9E'); // Gray for connected
+        } else {
+          circle.setAttribute('fill', '#666'); // Dark gray for inactive
+        }
+      });
+    }
+
+    function startDrawing(point) {
+      if (gameOver) return;
+
+      // Find which circle user clicked on
+      let clickedCircle = null;
+      for (const c of circles) {
+        const dist = Math.hypot(point.x - c.x, point.y - c.y);
+        if (dist <= c.r + 5) {
+          clickedCircle = c;
+          break;
+        }
+      }
+
+      // Must start from one of the two target numbers
+      if (!clickedCircle || (clickedCircle.num !== targetNum1 && clickedCircle.num !== targetNum2)) {
+        setMsg(`Start from ${targetNum1} or ${targetNum2}!`, 'err');
+        return;
+      }
+
+      drawing = true;
+      currentStartCircle = clickedCircle;
+      currentPath = [point];
+
+      if (currentPolyline) svg.removeChild(currentPolyline);
+      currentPolyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+      currentPolyline.setAttribute('fill', 'none');
+      currentPolyline.setAttribute('stroke', '#FF5722');
+      currentPolyline.setAttribute('stroke-width', '3');
+      currentPolyline.setAttribute('stroke-linecap', 'round');
+      currentPolyline.setAttribute('stroke-linejoin', 'round');
+      svg.appendChild(currentPolyline);
+      updatePolyline();
+      
+      const targetNum = currentStartCircle.num === targetNum1 ? targetNum2 : targetNum1;
+      setMsg(`Drawing from ${currentStartCircle.num} to ${targetNum}...`, 'info');
+    }
+
+    function addPoint(point) {
+      if (!drawing || gameOver) return;
+      
+      const last = currentPath[currentPath.length - 1];
+      const dx = point.x - last.x;
+      const dy = point.y - last.y;
+      if (dx * dx + dy * dy < 9) return;
+
+      // Determine which number is the target (the one we're NOT starting from)
+      const targetNum = currentStartCircle.num === targetNum1 ? targetNum2 : targetNum1;
+
+      // Check collision with ANY circle except the one we started from
+      const otherCircles = circles.filter(c => c.num !== currentStartCircle.num);
+      const hitCircle = otherCircles.find(c => 
+        distPointToSegment(c.x, c.y, last.x, last.y, point.x, point.y) <= c.r
+      );
+      
+      if (hitCircle) {
+        currentPath.push(point);
+        updatePolyline();
+        
+        // Check if this is the correct target
+        if (hitCircle.num === targetNum) {
+          endDrawing(true, hitCircle);
+        } else {
+          // Hit the wrong number - GAME OVER
+          endGame(`Hit number ${hitCircle.num}! You needed to reach ${targetNum}!`);
+        }
+        return;
+      }
+
+      // Check if path crosses any existing paths
+      if (pathCrossesExistingPaths(last, point)) {
+        currentPath.push(point);
+        updatePolyline();
+        endGame('Crossed your own path!');
+        return;
+      }
+
+      currentPath.push(point);
+      updatePolyline();
+    }
+
+    function endDrawing(success, targetCircle) {
+      if (!drawing || gameOver) return;
+      drawing = false;
+
+      if (success && targetCircle && currentPath.length > 2) {
+        // Success! Save this path
+        currentPolyline.setAttribute('stroke', '#4CAF50');
+        currentPolyline.setAttribute('stroke-width', '2.5');
+        paths.push({
+          points: [...currentPath],
+          polyline: currentPolyline
+        });
+        
+        currentStartCircle.connected = true;
+        targetCircle.connected = true;
+        connectedCount++;
+
+        currentPolyline = null;
+        currentPath = [];
+        
+        const fromNum = currentStartCircle.num;
+        currentStartCircle = null;
+
+        // Check if game is complete
+        if (connectedCount >= NUM_CIRCLES - 1) {
+          gameOver = true;
+          targetNum1 = null;
+          targetNum2 = null;
+          setMsg('🎉🎉🎉 VICTORY! All numbers connected! 🎉🎉🎉', 'ok');
+          updateStats();
+        } else {
+          setMsg(`✅ Connected ${fromNum} → ${targetCircle.num}!`, 'ok');
+          setTimeout(() => {
+            setNextPair();
+          }, 1000);
+        }
+      } else {
+        // Failed to reach target
+        if (currentPolyline) {
+          svg.removeChild(currentPolyline);
+          currentPolyline = null;
+        }
+        currentPath = [];
+        currentStartCircle = null;
+        const targetNum = currentStartCircle ? (currentStartCircle.num === targetNum1 ? targetNum2 : targetNum1) : targetNum2;
+        setMsg(`Try again - connect ${targetNum1} and ${targetNum2}!`, 'err');
+      }
+    }
+
+    function endGame(reason) {
+      gameOver = true;
+      drawing = false;
+      
+      if (currentPolyline) {
+        currentPolyline.setAttribute('stroke', '#F44336');
+      }
+      
+      setMsg(`💀 GAME OVER! ${reason}`, 'gameover');
+    }
+
+    function updatePolyline() {
+      if (!currentPolyline) return;
+      const pts = currentPath.map(p => `${p.x},${p.y}`).join(' ');
+      currentPolyline.setAttribute('points', pts);
+    }
+
+    function svgPointFromEvent(e) {
+      const rect = svg.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+      
+      const scaleX = SVG_WIDTH / rect.width;
+      const scaleY = SVG_HEIGHT / rect.height;
+      
+      return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+      };
+    }
+
+    function distPointToSegment(px, py, x1, y1, x2, y2) {
+      const vx = x2 - x1, vy = y2 - y1;
+      const wx = px - x1, wy = py - y1;
+      const c1 = vx * wx + vy * wy;
+      if (c1 <= 0) return Math.hypot(px - x1, py - y1);
+      const c2 = vx * vx + vy * vy;
+      if (c2 <= c1) return Math.hypot(px - x2, py - y2);
+      const t = c1 / c2;
+      const projX = x1 + t * vx;
+      const projY = y1 + t * vy;
+      return Math.hypot(px - projX, py - projY);
+    }
+
+    function segmentsIntersect(p1, p2, p3, p4) {
+      const x1 = p1.x, y1 = p1.y, x2 = p2.x, y2 = p2.y;
+      const x3 = p3.x, y3 = p3.y, x4 = p4.x, y4 = p4.y;
+      
+      const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+      if (Math.abs(denom) < 0.0001) return false;
+      
+      const t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denom;
+      const u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+      
+      return t > 0.05 && t < 0.95 && u > 0.05 && u < 0.95;
+    }
+
+    function pathCrossesExistingPaths(newP1, newP2) {
+      for (const path of paths) {
+        for (let i = 0; i < path.points.length - 1; i++) {
+          if (segmentsIntersect(newP1, newP2, path.points[i], path.points[i + 1])) {
+            return true;
+          }
+        }
+      }
+      
+      // Also check current path against itself
+      if (currentPath.length > 3) {
+        for (let i = 0; i < currentPath.length - 2; i++) {
+          if (segmentsIntersect(newP1, newP2, currentPath[i], currentPath[i + 1])) {
+            return true;
+          }
+        }
+      }
+      
+      return false;
+    }
+
+    svg.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      startDrawing(svgPointFromEvent(e));
+    });
+
+    svg.addEventListener('pointermove', e => {
+      if (!drawing) return;
+      e.preventDefault();
+      addPoint(svgPointFromEvent(e));
+    });
+
+    svg.addEventListener('pointerup', e => {
+      if (!drawing || gameOver) return;
+      e.preventDefault();
+      endDrawing(false, null);
+    });
+
+    svg.addEventListener('pointerleave', e => {
+      if (drawing && !gameOver) {
+        endDrawing(false, null);
+      }
+    });
+
+    resetBtn.addEventListener('click', () => {
+      initGame();
+    });
+
+    initGame();
+  </script>
+</body>
+</html>
