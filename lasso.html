@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>943 Number Path Chain Game</title>
+  <title>831 Number Path Chain Game</title>
   <style>
     * {
       box-sizing: border-box;
@@ -569,10 +569,14 @@
     svg.addEventListener('mouseleave', handleLeave);
 
     resetBtn.addEventListener('click', () => {
-      initGame();
+      // initGame();
+      const url = new URL(window.location.href);
+      url.searchParams.set("_", Date.now());
+      window.location.replace(url.toString());
     });
 
     initGame();
   </script>
 </body>
+
 </html>
