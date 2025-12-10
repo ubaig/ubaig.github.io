@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Firebase Login</title>
+</head>
+<body>
+
+<h2>Login</h2>
+
+<input id="email" type="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+
+<p id="status"></p>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { 
+    getAuth, 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  // 🔴 REPLACE WITH YOUR FIREBASE CONFIG
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const ALLOWED_EMAIL = "someone@gmail.com";
+
+  window.login = function () {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+
+    signInWithEmailAndPassword(auth, email, password)
+      .catch(err => {
+        document.getElementById("status").innerText = err.message;
+      });
+  };
+
+  onAuthStateChanged(auth, user => {
+    if (!user) return;
+
+    if (user.email !== ALLOWED_EMAIL) {
+      alert("Access denied");
+      signOut(auth);
+    } else {
+      document.body.innerHTML = "<h1>✅ Access Granted</h1>";
+    }
+  });
+</script>
+
+</body>
+</html>
