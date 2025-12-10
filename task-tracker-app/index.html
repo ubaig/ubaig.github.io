@@ -147,7 +147,7 @@
         }
 
         .daily-checkin {
-            max-width: 600px;
+            max-width: 700px;
             margin: 0 auto;
         }
 
@@ -182,17 +182,35 @@
             background: #e9ecef;
         }
 
-        .habit-checkbox {
-            width: 24px;
-            height: 24px;
-            margin-right: 15px;
-            cursor: pointer;
-        }
-
         .habit-name {
             flex: 1;
             font-size: 16px;
             color: #333;
+            font-weight: 500;
+        }
+
+        .kid-checkboxes {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .kid-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .kid-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .habit-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
         }
 
         .save-btn {
@@ -250,12 +268,12 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-            font-size: 14px;
+            font-size: 13px;
         }
 
         th, td {
             border: 1px solid #ddd;
-            padding: 12px;
+            padding: 10px 8px;
             text-align: center;
         }
 
@@ -268,6 +286,7 @@
         .habit-col {
             text-align: left;
             font-weight: 500;
+            min-width: 150px;
         }
 
         .check-mark {
@@ -278,6 +297,11 @@
         .x-mark {
             color: #dc3545;
             font-size: 18px;
+        }
+
+        .kid-header {
+            font-size: 11px;
+            font-weight: 500;
         }
 
         .success-message {
@@ -364,8 +388,9 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-        // TODO: Replace with your Firebase config
+      // TODO: Replace with your Firebase config
          const firebaseConfig = {
           apiKey: "AIzaSyCFrraygoX0pYKDIYRHiPh3rPTD7MOBelw",
           authDomain: "task-tracker-app-403b3.firebaseapp.com",
@@ -374,14 +399,17 @@
           messagingSenderId: "714304406446",
           appId: "1:714304406446:web:998e144630cefb710cfe3f"
         };
-
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const database = getDatabase(app);
         const provider = new GoogleAuthProvider();
 
         const habits = [
-            'FRESHR', 'DUTCHIE', 'ASVAR', 'WORK', 'NOSMOK', 'NSUHA', 'GUANA', 'CSMS TO ELSEN', 'REST LINE', 'WAKE UP BEGD', 'GAIN BEHVOD', 'CHNG TABLE'
+            'FRESHR', 'DUTCHIE', 'ASVAR', 'WORK', 'NOSMOK', 'NSUHA', 'GUANA', 
+            'CSMS TO ELSEN', 'REST LINE', 'WAKE UP BEGD', 'GAIN BEHVOD', 'CHNG TABLE'
         ];
+
+        const kids = ['U17', 'A19'];
 
         let currentUser = null;
         let currentWeekStart = getWeekStart(new Date());
@@ -405,8 +433,18 @@
         function initHabitsList() {
             habitsList.innerHTML = habits.map((habit, index) => `
                 <div class="habit-item">
-                    <input type="checkbox" class="habit-checkbox" id="habit-${index}" data-habit="${habit}">
-                    <label class="habit-name" for="habit-${index}">${habit}</label>
+                    <div class="habit-name">${habit}</div>
+                    <div class="kid-checkboxes">
+                        ${kids.map(kid => `
+                            <div class="kid-checkbox-wrapper">
+                                <span class="kid-label">${kid}</span>
+                                <input type="checkbox" class="habit-checkbox" 
+                                       id="habit-${index}-${kid}" 
+                                       data-habit="${habit}" 
+                                       data-kid="${kid}">
+                            </div>
+                        `).join('')}
+                    </div>
                 </div>
             `).join('');
         }
@@ -414,34 +452,40 @@
         // Load data for selected date
         async function loadDailyData() {
             const date = selectedDate.value;
-            const key = `habits:${currentUser.uid}:${date}`;
+            const dataRef = ref(database, `habits/${currentUser.uid}/${date}`);
             
             try {
-                const result = await window.storage.get(key);
-                const data = result ? JSON.parse(result.value) : {};
+                const snapshot = await get(dataRef);
+                const data = snapshot.exists() ? snapshot.val() : {};
                 
                 habits.forEach((habit, index) => {
-                    const checkbox = document.getElementById(`habit-${index}`);
-                    checkbox.checked = data[habit] || false;
+                    kids.forEach(kid => {
+                        const checkbox = document.getElementById(`habit-${index}-${kid}`);
+                        const key = `${habit}_${kid}`;
+                        checkbox.checked = data[key] || false;
+                    });
                 });
             } catch (error) {
-                console.log('No data for this date');
+                console.log('No data for this date:', error);
             }
         }
 
         // Save daily check-in
         saveBtn.addEventListener('click', async () => {
             const date = selectedDate.value;
-            const key = `habits:${currentUser.uid}:${date}`;
+            const dataRef = ref(database, `habits/${currentUser.uid}/${date}`);
             const data = {};
             
             habits.forEach((habit, index) => {
-                const checkbox = document.getElementById(`habit-${index}`);
-                data[habit] = checkbox.checked;
+                kids.forEach(kid => {
+                    const checkbox = document.getElementById(`habit-${index}-${kid}`);
+                    const key = `${habit}_${kid}`;
+                    data[key] = checkbox.checked;
+                });
             });
             
             try {
-                await window.storage.set(key, JSON.stringify(data));
+                await set(dataRef, data);
                 successMessage.classList.add('active');
                 setTimeout(() => successMessage.classList.remove('active'), 3000);
             } catch (error) {
@@ -517,10 +561,10 @@
             const weekData = {};
             for (const date of weekDates) {
                 const dateStr = formatDate(date);
-                const key = `habits:${currentUser.uid}:${dateStr}`;
+                const dataRef = ref(database, `habits/${currentUser.uid}/${dateStr}`);
                 try {
-                    const result = await window.storage.get(key);
-                    weekData[dateStr] = result ? JSON.parse(result.value) : {};
+                    const snapshot = await get(dataRef);
+                    weekData[dateStr] = snapshot.exists() ? snapshot.val() : {};
                 } catch (error) {
                     weekData[dateStr] = {};
                 }
@@ -532,7 +576,16 @@
                     <thead>
                         <tr>
                             <th class="habit-col">Habit</th>
-                            ${weekDates.map((date, i) => `<th>${days[i]}<br>${formatDisplayDate(date)}</th>`).join('')}
+                            ${weekDates.map((date, i) => `
+                                <th colspan="2">${days[i]}<br>${formatDisplayDate(date)}</th>
+                            `).join('')}
+                        </tr>
+                        <tr>
+                            <th></th>
+                            ${weekDates.map(() => `
+                                <th class="kid-header">U17</th>
+                                <th class="kid-header">A19</th>
+                            `).join('')}
                         </tr>
                     </thead>
                     <tbody>
@@ -541,8 +594,11 @@
                                 <td class="habit-col">${habit}</td>
                                 ${weekDates.map(date => {
                                     const dateStr = formatDate(date);
-                                    const checked = weekData[dateStr][habit];
-                                    return `<td>${checked ? '<span class="check-mark">✓</span>' : '<span class="x-mark">✗</span>'}</td>`;
+                                    return kids.map(kid => {
+                                        const key = `${habit}_${kid}`;
+                                        const checked = weekData[dateStr][key];
+                                        return `<td>${checked ? '<span class="check-mark">✓</span>' : '<span class="x-mark">✗</span>'}</td>`;
+                                    }).join('');
                                 }).join('')}
                             </tr>
                         `).join('')}
