@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -388,9 +388,7 @@
     <script type="module">
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
-        import { getDatabase, ref, set, get } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js';
 
-      // TODO: Replace with your Firebase config
          const firebaseConfig = {
           apiKey: "AIzaSyCFrraygoX0pYKDIYRHiPh3rPTD7MOBelw",
           authDomain: "task-tracker-app-403b3.firebaseapp.com",
@@ -401,7 +399,6 @@
         };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const database = getDatabase(app);
         const provider = new GoogleAuthProvider();
 
         const habits = [
@@ -429,6 +426,22 @@
         // Set today's date as default
         selectedDate.valueAsDate = new Date();
 
+        // LocalStorage helper functions
+        function getStorageKey(date) {
+            return `habits_${currentUser.uid}_${date}`;
+        }
+
+        function saveToLocalStorage(date, data) {
+            const key = getStorageKey(date);
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function loadFromLocalStorage(date) {
+            const key = getStorageKey(date);
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : {};
+        }
+
         // Initialize habits list
         function initHabitsList() {
             habitsList.innerHTML = habits.map((habit, index) => `
@@ -450,30 +463,22 @@
         }
 
         // Load data for selected date
-        async function loadDailyData() {
+        function loadDailyData() {
             const date = selectedDate.value;
-            const dataRef = ref(database, `habits/${currentUser.uid}/${date}`);
+            const data = loadFromLocalStorage(date);
             
-            try {
-                const snapshot = await get(dataRef);
-                const data = snapshot.exists() ? snapshot.val() : {};
-                
-                habits.forEach((habit, index) => {
-                    kids.forEach(kid => {
-                        const checkbox = document.getElementById(`habit-${index}-${kid}`);
-                        const key = `${habit}_${kid}`;
-                        checkbox.checked = data[key] || false;
-                    });
+            habits.forEach((habit, index) => {
+                kids.forEach(kid => {
+                    const checkbox = document.getElementById(`habit-${index}-${kid}`);
+                    const key = `${habit}_${kid}`;
+                    checkbox.checked = data[key] || false;
                 });
-            } catch (error) {
-                console.log('No data for this date:', error);
-            }
+            });
         }
 
         // Save daily check-in
-        saveBtn.addEventListener('click', async () => {
+        saveBtn.addEventListener('click', () => {
             const date = selectedDate.value;
-            const dataRef = ref(database, `habits/${currentUser.uid}/${date}`);
             const data = {};
             
             habits.forEach((habit, index) => {
@@ -484,14 +489,9 @@
                 });
             });
             
-            try {
-                await set(dataRef, data);
-                successMessage.classList.add('active');
-                setTimeout(() => successMessage.classList.remove('active'), 3000);
-            } catch (error) {
-                console.error('Error saving:', error);
-                alert('Error saving data. Please try again.');
-            }
+            saveToLocalStorage(date, data);
+            successMessage.classList.add('active');
+            setTimeout(() => successMessage.classList.remove('active'), 3000);
         });
 
         // Date change listener
@@ -544,7 +544,7 @@
         }
 
         // Load weekly view
-        async function loadWeeklyView() {
+        function loadWeeklyView() {
             const weekEnd = new Date(currentWeekStart);
             weekEnd.setDate(weekEnd.getDate() + 6);
             
@@ -561,13 +561,7 @@
             const weekData = {};
             for (const date of weekDates) {
                 const dateStr = formatDate(date);
-                const dataRef = ref(database, `habits/${currentUser.uid}/${dateStr}`);
-                try {
-                    const snapshot = await get(dataRef);
-                    weekData[dateStr] = snapshot.exists() ? snapshot.val() : {};
-                } catch (error) {
-                    weekData[dateStr] = {};
-                }
+                weekData[dateStr] = loadFromLocalStorage(dateStr);
             }
             
             const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
